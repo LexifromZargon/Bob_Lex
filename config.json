@@ -1,11 +1,16 @@
 {
     "hit_ms": 120,
     "loop_ms": 20,
-    "scale": 0.4,
+    "scale": 0.2,
     "transparent_color": "magenta",
     "texture_dir": "Textures",
-    "idle_image": "smack_none.png",
-    "left_image": "smack_left.png",
-    "right_image": "smack_right.png",
-    "both_image": "smack_both.png"
+    "current_theme": "default",
+    "themes": {
+        "default": {
+            "idle_image": "smack_none.png",
+            "left_image": "smack_left.png",
+            "right_image": "smack_right.png",
+            "both_image": "smack_both.png"
+        }
+    }
 }

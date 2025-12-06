@@ -19,6 +19,12 @@ class Bongobuddy:
         self.base_dir = self.get_base_dir()
         self.texture_dir = os.path.join(self.base_dir, self.config["texture_dir"])
 
+        # Themes
+        self.themes = self.config["themes"]
+        self.theme_names = list(self.themes.keys())
+        self.current_theme = self.config["current_theme"]
+        self.theme_index = self.theme_names.index(self.current_theme)
+
         # Runtime state
         self.pending = False
         self.hits = 0
@@ -63,9 +69,12 @@ class Bongobuddy:
             return os.path.dirname(sys.executable)
         return os.path.dirname(os.path.abspath(__file__))
 
-    def on_any_input(self, *_):
-        self.hits += 1
-        self.pending = True
+    def on_any_input(self, *args):
+        # Keyboard: on_press(key) -> args = (key,)
+        # Mouse: on_click(x, y, button, pressed) -> args = (x, y, button, pressed)
+        if len(args) == 1 or (len(args) == 4 and args[3]):
+            self.hits += 1
+            self.pending = True
 
     def setup_gui(self):
         self.root = tk.Tk()
@@ -90,11 +99,11 @@ class Bongobuddy:
                              bg="white", fg="black", bd=0, highlightthickness=0)
         exit_btn.pack(side="right")
 
-        # Position window at bottom center
+        # Position window at center
         self.root.update_idletasks()
         sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
         w, h = self.root.winfo_width(), self.root.winfo_height()
-        self.root.geometry(f"+{(sw - w) // 2}+{sh - h - 5}")
+        self.root.geometry(f"+{(sw - w) // 2}+{(sh - h) // 2}")
 
         # Dragging
         self.drag_off = (0, 0)
@@ -114,8 +123,12 @@ class Bongobuddy:
         # Mouse wheel scaling
         self.image_label.bind("<MouseWheel>", self.on_scroll)
 
+        # Theme switching
+        self.root.bind("<F1>", lambda e: self.switch_theme())
+
     def load_images(self):
         try:
+            theme = self.themes[self.current_theme]
             def load(name: str) -> ImageTk.PhotoImage:
                 path = os.path.join(self.texture_dir, name)
                 img = Image.open(path).convert("RGBA")
@@ -123,10 +136,10 @@ class Bongobuddy:
                 img = img.resize((int(w * self.scale), int(h * self.scale)), Image.LANCZOS)
                 return ImageTk.PhotoImage(img)
 
-            self.img_idle = load(self.config["idle_image"])
-            left = load(self.config["left_image"])
-            right = load(self.config["right_image"])
-            both = load(self.config["both_image"])
+            self.img_idle = load(theme["idle_image"])
+            left = load(theme["left_image"])
+            right = load(theme["right_image"])
+            both = load(theme["both_image"])
             self.smack_frames = [left, right, left, right, both]
             self.keep = [self.img_idle, left, right, both]
             self.image_label.config(image=self.img_idle)
@@ -135,11 +148,11 @@ class Bongobuddy:
             self.root.destroy()
             raise
 
-    def reload_scaled(self):
-        try:
-            self.load_images()
-        except Exception as e:
-            logging.error(f"Failed to reload scaled images: {e}")
+    def switch_theme(self):
+        self.theme_index = (self.theme_index + 1) % len(self.theme_names)
+        self.current_theme = self.theme_names[self.theme_index]
+        logging.info(f"Switched to theme: {self.current_theme}")
+        self.reload_scaled()
 
     def on_scroll(self, e):
         step = 0.05 if e.delta > 0 else -0.05
